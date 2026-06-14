@@ -1,0 +1,422 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+#game{min-height:600px;overflow:hidden}
+.screen{display:none;flex-direction:column;align-items:center;padding:1.5rem 1rem;min-height:580px}
+.screen.active{display:flex}
+
+#introScreen{
+  background:linear-gradient(180deg,#87CEEB 0%,#B0E0FF 40%,#90EE90 40%,#5DBB63 100%);
+  border-radius:16px;position:relative;overflow:hidden
+}
+#mapScreen{
+  background:linear-gradient(180deg,#87CEEB 0%,#B5DEFF 35%,#A8D5A2 35%,#6BBF70 100%);
+  border-radius:16px;position:relative;overflow:hidden
+}
+#questionScreen{
+  background:linear-gradient(160deg,#FFF9E6 0%,#FFF0C8 100%);
+  border-radius:16px;border:3px solid #FFD700
+}
+#finalScreen{
+  background:linear-gradient(180deg,#87CEEB 0%,#B0E0FF 40%,#90EE90 40%,#5DBB63 100%);
+  border-radius:16px;overflow:hidden
+}
+
+.cloud{position:absolute;background:#fff;border-radius:50px;opacity:.9}
+
+.start-btn{
+  background:#FF6B35;color:#fff;border:none;border-radius:30px;
+  font-size:20px;font-weight:700;padding:14px 36px;cursor:pointer;
+  box-shadow:0 4px 0 #C84B1A;margin-top:1rem;
+  transition:transform .1s
+}
+.start-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #C84B1A}
+
+.map-title{
+  font-size:22px;font-weight:700;color:#fff;
+  text-shadow:0 2px 4px rgba(0,0,0,.3);margin-bottom:0.5rem;z-index:2
+}
+.path-wrap{position:relative;width:320px;height:420px;z-index:2}
+.path-svg{position:absolute;top:0;left:0;width:100%;height:100%}
+.map-node{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;z-index:3}
+.node-btn{
+  width:58px;height:58px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:20px;font-weight:700;
+  border:4px solid #fff;transition:transform .15s;
+  box-shadow:0 4px 8px rgba(0,0,0,.2)
+}
+.node-btn:hover{transform:scale(1.12)}
+.nlabel{font-size:12px;font-weight:700;margin-top:4px;text-align:center;
+  background:rgba(255,255,255,.85);border-radius:8px;padding:2px 6px;max-width:70px;color:#333}
+.n-locked .node-btn{background:#aaa;color:#777;border-color:#ccc}
+.n-active .node-btn{background:#FFD700;color:#7B5B00;border-color:#FFA500;animation:bounce 0.7s infinite alternate}
+.n-done .node-btn{background:#4CAF50;color:#fff;border-color:#2E7D32}
+.n-church .node-btn{background:#8B4FCB;color:#fff;border-color:#6A1B9A;font-size:24px}
+.n-church.n-locked .node-btn{background:#aaa;color:#777;border-color:#ccc}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+
+.q-badge{
+  background:#FF6B35;color:#fff;font-size:14px;font-weight:700;
+  padding:4px 14px;border-radius:20px;margin-bottom:0.8rem
+}
+.q-chars{display:flex;gap:1.5rem;justify-content:center;margin-bottom:0.8rem;align-items:flex-end}
+.q-bubble{
+  background:#fff;border-radius:16px;border:2px solid #FFD700;
+  padding:10px 16px;font-size:16px;font-weight:600;color:#333;
+  max-width:320px;text-align:center;line-height:1.4;margin-bottom:0.8rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);position:relative
+}
+.q-bubble:after{
+  content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:#FFD700
+}
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:480px}
+.opt{
+  background:#fff;border:3px solid #E0E0E0;border-radius:16px;
+  padding:12px 8px;display:flex;flex-direction:column;align-items:center;
+  gap:6px;cursor:pointer;transition:border-color .15s,transform .1s;
+  box-shadow:0 2px 6px rgba(0,0,0,.07)
+}
+.opt:hover{border-color:#FFD700;transform:scale(1.04)}
+.opt .opt-img{font-size:52px;line-height:1}
+.opt .opt-lbl{font-size:12px;font-weight:600;color:#444;text-align:center}
+.opt.correct{border-color:#4CAF50;background:#E8F5E9;animation:pop .4s ease}
+.opt.wrong{border-color:#F44336;background:#FFEBEE;animation:shake .4s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.feedback-box{
+  margin-top:0.8rem;padding:10px 20px;border-radius:12px;
+  font-size:15px;font-weight:700;text-align:center;min-height:44px;
+  display:flex;align-items:center;justify-content:center;gap:8px
+}
+.fb-ok{background:#E8F5E9;color:#2E7D32;border:2px solid #4CAF50}
+.fb-err{background:#FFEBEE;color:#C62828;border:2px solid #F44336}
+.fb-hide{visibility:hidden}
+
+.next-btn{
+  background:#4CAF50;color:#fff;border:none;border-radius:30px;
+  font-size:16px;font-weight:700;padding:11px 28px;cursor:pointer;
+  box-shadow:0 4px 0 #2E7D32;margin-top:0.8rem;display:none;
+  transition:transform .1s
+}
+.next-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #2E7D32}
+
+.stars-row{font-size:40px;letter-spacing:6px;margin:0.5rem 0;z-index:2}
+.final-title{font-size:26px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3);z-index:2;text-align:center}
+.final-bubble{
+  background:rgba(255,255,255,.95);border:3px solid #FFD700;border-radius:20px;
+  padding:16px 20px;max-width:400px;font-size:15px;font-weight:600;color:#333;
+  line-height:1.6;text-align:center;margin:1rem 0;z-index:2;
+  box-shadow:0 4px 16px rgba(0,0,0,.1)
+}
+.replay-btn{
+  background:#FF6B35;color:#fff;border:none;border-radius:30px;
+  font-size:18px;font-weight:700;padding:12px 30px;cursor:pointer;
+  box-shadow:0 4px 0 #C84B1A;z-index:2;margin-top:0.5rem
+}
+.confetti-piece{
+  position:absolute;width:10px;height:10px;border-radius:2px;
+  animation:fall 2.5s ease-in forwards;z-index:10;pointer-events:none
+}
+@keyframes fall{
+  0%{transform:translateY(-30px) rotate(0deg);opacity:1}
+  100%{transform:translateY(500px) rotate(720deg);opacity:0}
+}
+
+.char-img{width:90px;height:90px}
+</style>
+
+<div id="game" role="main">
+
+<div id="introScreen" class="screen active">
+  <div class="cloud" style="width:120px;height:40px;top:40px;left:20px"></div>
+  <div class="cloud" style="width:90px;height:30px;top:60px;right:30px"></div>
+  <div class="cloud" style="width:70px;height:25px;top:100px;left:140px"></div>
+  <div style="font-size:26px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3);margin-top:1.5rem;text-align:center;z-index:2">
+    ¡Colaboradores<br>en el Templo!
+  </div>
+  <div style="display:flex;gap:2rem;justify-content:center;margin:1rem 0;z-index:2;align-items:flex-end">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f467.png" class="char-img" alt="Edith" onerror="this.style.fontSize='60px';this.src='';this.textContent='👧'">
+      <span style="font-size:16px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)">Edith</span>
+    </div>
+    <div style="font-size:36px;z-index:2;align-self:center">🤝</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f466.png" class="char-img" alt="Lucas" onerror="this.style.fontSize='60px';this.src='';this.textContent='👦'">
+      <span style="font-size:16px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)">Lucas</span>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,.85);border-radius:14px;padding:12px 18px;max-width:300px;text-align:center;font-size:14px;color:#333;font-weight:600;z-index:2;line-height:1.5">
+    ¡Ayuda a Edith y Lucas a llegar a la iglesia! Responde bien las preguntas para avanzar en el camino. 🌟
+  </div>
+  <button class="start-btn" onclick="startGame()">¡Jugar ahora! 🎮</button>
+  <div style="position:absolute;bottom:0;width:100%;height:50px;background:#5DBB63;z-index:1"></div>
+  <div style="z-index:2;font-size:11px;color:rgba(255,255,255,.8);margin-top:1rem">📖 Basado en 1 Corintios 3:9</div>
+</div>
+
+<div id="mapScreen" class="screen">
+  <div class="cloud" style="width:100px;height:35px;top:30px;left:15px;z-index:2"></div>
+  <div class="cloud" style="width:80px;height:28px;top:50px;right:20px;z-index:2"></div>
+  <div class="map-title">🗺️ Camino a la Iglesia</div>
+  <div class="path-wrap" id="mapWrap">
+    <svg class="path-svg" id="pathSvg" viewBox="0 0 320 420"></svg>
+  </div>
+  <div style="background:rgba(255,255,255,.8);border-radius:10px;padding:6px 14px;font-size:13px;font-weight:600;color:#333;z-index:2;margin-top:0.3rem">
+    Toca la estrella brillante ⭐ para responder
+  </div>
+  <div style="position:absolute;bottom:0;width:100%;height:60px;background:#5DBB63;z-index:1;border-radius:0 0 16px 16px"></div>
+</div>
+
+<div id="questionScreen" class="screen">
+  <div class="q-badge" id="qBadge">Nivel 1 de 8</div>
+  <div class="q-chars">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f467.png" style="width:70px;height:70px" alt="Edith">
+      <span style="font-size:12px;font-weight:700;color:#555">Edith</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f466.png" style="width:70px;height:70px" alt="Lucas">
+      <span style="font-size:12px;font-weight:700;color:#555">Lucas</span>
+    </div>
+  </div>
+  <div class="q-bubble" id="qText">¿Cuál imagen muestra a alguien colaborando?</div>
+  <div class="opts-grid" id="optGrid"></div>
+  <div class="feedback-box fb-hide" id="feedback">...</div>
+  <button class="next-btn" id="nextBtn">Seguir el camino ➡️</button>
+</div>
+
+<div id="finalScreen" class="screen">
+  <div class="cloud" style="width:100px;height:35px;top:30px;left:15px;z-index:2"></div>
+  <div class="cloud" style="width:80px;height:28px;top:55px;right:20px;z-index:2"></div>
+  <div class="stars-row">⭐⭐⭐⭐⭐</div>
+  <div class="final-title">¡Llegaron a la iglesia!</div>
+  <div style="display:flex;gap:1.5rem;justify-content:center;align-items:flex-end;z-index:2;margin:0.5rem 0">
+    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f467.png" style="width:80px;height:80px" alt="Edith">
+    <div style="font-size:48px;z-index:2">⛪</div>
+    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f466.png" style="width:80px;height:80px" alt="Lucas">
+  </div>
+  <div class="final-bubble">
+    🎉 ¡Edith y Lucas dicen: <em>"¡Gracias por ayudarnos a llegar al templo! Tú también puedes colaborar: cantando, orando, invitando a tus amigos, cuidando el salón y ayudando a los hermanos. ¡Dios está muy contento contigo, porque somos COLABORADORES de Dios!"</em>
+  </div>
+  <div style="background:rgba(255,255,255,.85);border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;color:#534AB7;z-index:2;text-align:center">
+    📖 "Porque nosotros somos colaboradores de Dios" — 1 Corintios 3:9
+  </div>
+  <button class="replay-btn" onclick="startGame()">¡Jugar de nuevo! 🔄</button>
+  <div style="position:absolute;bottom:0;width:100%;height:60px;background:#5DBB63;z-index:1;border-radius:0 0 16px 16px"></div>
+</div>
+
+</div>
+<script>
+const Qs=[
+  {t:"¿Qué hace alguien que colabora en el templo?",
+   opts:[
+     {e:"🧹",l:"Limpiar el salón",c:true},
+     {e:"🎮",l:"Jugar videojuegos",c:false},
+     {e:"😴",l:"Dormir en clase",c:false},
+     {e:"🏃",l:"Correr por dentro",c:false}
+   ]},
+  {t:"¿Cómo colabora Edith con sus amigos?",
+   opts:[
+     {e:"📱",l:"Usar el celular",c:false},
+     {e:"👫",l:"Invitarlos a la iglesia",c:true},
+     {e:"🙈",l:"Esconderse",c:false},
+     {e:"🍭",l:"Comer dulces sola",c:false}
+   ]},
+  {t:"¿Qué dice la Biblia en 1 Corintios 3:9?",
+   opts:[
+     {e:"😎",l:"Somos los mejores",c:false},
+     {e:"🙏",l:"Somos colaboradores de Dios",c:true},
+     {e:"💤",l:"Podemos descansar siempre",c:false},
+     {e:"🎉",l:"Solo celebrar",c:false}
+   ]},
+  {t:"Lucas quiere ayudar en la iglesia. ¿Qué hace?",
+   opts:[
+     {e:"🎤",l:"Canta en el coro",c:true},
+     {e:"📺",l:"Ve televisión",c:false},
+     {e:"😤",l:"Se queda quieto sin hacer nada",c:false},
+     {e:"🔊",l:"Hace mucho ruido",c:false}
+   ]},
+  {t:"¿Qué hacen los niños para cuidar el templo?",
+   opts:[
+     {e:"🗑️",l:"Recogen papeles del suelo",c:true},
+     {e:"🖍️",l:"Pintan las paredes",c:false},
+     {e:"😡",l:"Pelean con amigos",c:false},
+     {e:"🏃",l:"Salen corriendo",c:false}
+   ]},
+  {t:"¿Quiénes colaboraban en la iglesia con el apóstol Pablo?",
+   opts:[
+     {e:"🤺",l:"Soldados romanos",c:false},
+     {e:"👩",l:"Febe, Priscila y Aquila",c:true},
+     {e:"👑",l:"Los reyes",c:false},
+     {e:"🧙",l:"Magos",c:false}
+   ]},
+  {t:"¿Qué hace Edith para colaborar en el salón de clases?",
+   opts:[
+     {e:"🪑",l:"Ordena las sillas",c:true},
+     {e:"🍕",l:"Come pizza",c:false},
+     {e:"🎭",l:"Hace teatro de burlas",c:false},
+     {e:"🎲",l:"Juega dados",c:false}
+   ]},
+  {t:"¿Por qué debemos colaborar en el templo?",
+   opts:[
+     {e:"😊",l:"Para que Dios esté contento",c:true},
+     {e:"🏆",l:"Para ganar premios",c:false},
+     {e:"👀",l:"Para que nos vean",c:false},
+     {e:"😴",l:"Porque no hay otra cosa",c:false}
+   ]}
+];
+
+const nodePos=[
+  {x:160,y:390},
+  {x:80,y:320},
+  {x:200,y:260},
+  {x:100,y:195},
+  {x:220,y:135},
+  {x:100,y:80},
+  {x:200,y:30},
+  {x:270,y:320},
+  {x:270,y:200}
+];
+
+let curLevel=0,answered=false;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(){curLevel=0;show('mapScreen');renderMap();}
+
+function renderMap(){
+  const svg=document.getElementById('pathSvg');
+  const wrap=document.getElementById('mapWrap');
+  wrap.querySelectorAll('.map-node').forEach(n=>n.remove());
+  svg.innerHTML='';
+
+  const total=nodePos.length;
+  const churchIdx=total-1;
+
+  for(let i=0;i<total-1;i++){
+    const a=nodePos[i],b=nodePos[i+1];
+    if(i===churchIdx-1) continue;
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',a.x);ln.setAttribute('y1',a.y);
+    ln.setAttribute('x2',b.x);ln.setAttribute('y2',b.y);
+    ln.setAttribute('stroke',i<curLevel?'#4CAF50':'rgba(255,255,255,.6)');
+    ln.setAttribute('stroke-width','5');
+    ln.setAttribute('stroke-dasharray','10 6');
+    ln.setAttribute('stroke-linecap','round');
+    svg.appendChild(ln);
+  }
+
+  nodePos.forEach((pos,i)=>{
+    const isChurch=i===churchIdx;
+    const isDone=i<curLevel;
+    const isActive=i===curLevel;
+    const isLocked=i>curLevel;
+
+    const node=document.createElement('div');
+    node.className='map-node '+(isChurch?'n-church':'')+(isDone?' n-done':'')+(isActive&&!isChurch?' n-active':'')+(isLocked?' n-locked':'');
+    node.style.left=(pos.x-29)+'px';
+    node.style.top=(pos.y-29)+'px';
+
+    const btn=document.createElement('div');
+    btn.className='node-btn';
+
+    if(isChurch) btn.textContent='⛪';
+    else if(isDone) btn.textContent='✅';
+    else if(isActive) btn.textContent='⭐';
+    else btn.textContent='🔒';
+
+    const lbl=document.createElement('div');
+    lbl.className='nlabel';
+    lbl.textContent=isChurch?'Iglesia':(isDone?'¡Listo!':(isActive?'Nivel '+(i+1):'???'));
+
+    node.appendChild(btn);node.appendChild(lbl);
+
+    if(isActive&&!isChurch) node.onclick=()=>openQ(i);
+    else if(isChurch&&curLevel>=churchIdx) node.onclick=showFinal;
+
+    wrap.appendChild(node);
+  });
+}
+
+function openQ(idx){
+  if(idx>=Qs.length) return;
+  const q=Qs[idx];
+  answered=false;
+  document.getElementById('qBadge').textContent='Nivel '+(idx+1)+' de '+Qs.length;
+  document.getElementById('qText').textContent=q.text||q.t;
+  const fb=document.getElementById('feedback');
+  fb.textContent='';fb.className='feedback-box fb-hide';
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='none';
+
+  const grid=document.getElementById('optGrid');
+  grid.innerHTML='';
+  const opts=[...q.opts].sort(()=>Math.random()-.5);
+  opts.forEach(o=>{
+    const card=document.createElement('div');
+    card.className='opt';
+    card.innerHTML='<div class="opt-img">'+o.e+'</div><div class="opt-lbl">'+o.l+'</div>';
+    card.onclick=()=>pick(card,o.c,opts);
+    grid.appendChild(card);
+  });
+  show('questionScreen');
+}
+
+function pick(card,correct,opts){
+  if(answered)return;
+  answered=true;
+  const cards=document.querySelectorAll('.opt');
+  cards.forEach((c,i)=>{if(opts[i].c)c.classList.add('correct');});
+  const fb=document.getElementById('feedback');
+  const nb=document.getElementById('nextBtn');
+  if(correct){
+    card.classList.add('correct');
+    fb.textContent='🎉 ¡Muy bien! ¡Excelente!';
+    fb.className='feedback-box fb-ok';
+    curLevel++;
+    nb.style.display='block';
+    if(curLevel>Qs.length){
+      nb.textContent='¡Ir a la iglesia! ⛪';
+      nb.onclick=showFinal;
+    } else {
+      nb.textContent='Seguir el camino ➡️';
+      nb.onclick=goMap;
+    }
+  } else {
+    card.classList.add('wrong');
+    fb.textContent='❌ ¡Esa no es! Mira bien las imágenes e inténtalo otra vez 😊';
+    fb.className='feedback-box fb-err';
+    nb.style.display='block';
+    nb.textContent='Intentar de nuevo 🔄';
+    nb.onclick=()=>{answered=false;fb.className='feedback-box fb-hide';nb.style.display='none';
+      cards.forEach(c=>c.classList.remove('correct','wrong'));};
+  }
+}
+
+function goMap(){show('mapScreen');renderMap();}
+
+function showFinal(){
+  show('finalScreen');
+  launchConfetti();
+}
+
+function launchConfetti(){
+  const colors=['#FF6B35','#FFD700','#4CAF50','#7F77DD','#FF4081','#00BCD4'];
+  const game=document.getElementById('game');
+  for(let i=0;i<40;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.top='-20px';
+    p.style.background=colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDelay=(Math.random()*1.5)+'s';
+    p.style.transform='rotate('+(Math.random()*360)+'deg)';
+    game.appendChild(p);
+    setTimeout(()=>p.remove(),4000);
+  }
+}
+</script>
